@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tab-Updown Options</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="options">
+      <h1 class="options__title">Tab-Updown Settings</h1>
+
+      <!--
+        Chunk_Size control (Requirement 3.1): an integer from 1 to 100 inclusive.
+        options.ts (task 10.2/10.3) targets #chunk-size to load/validate/save.
+      -->
+      <section class="field" aria-labelledby="chunk-size-heading">
+        <h2 id="chunk-size-heading" class="field__heading">Chunk size</h2>
+        <div class="field__row">
+          <label class="field__label" for="chunk-size">
+            Elements to move per jump
+          </label>
+          <input
+            id="chunk-size"
+            name="chunk-size"
+            class="field__input"
+            type="number"
+            min="1"
+            max="100"
+            step="1"
+            inputmode="numeric"
+            aria-describedby="chunk-size-help"
+          />
+        </div>
+        <p id="chunk-size-help" class="field__help">
+          Choose a whole number from 1 to 100.
+        </p>
+      </section>
+
+      <!--
+        Hotkey controls (Requirement 4.2): one control per command.
+        options.ts (task 10.2/10.4) targets #forward-hotkey and #backward-hotkey.
+      -->
+      <section class="field" aria-labelledby="hotkeys-heading">
+        <h2 id="hotkeys-heading" class="field__heading">Hotkeys</h2>
+
+        <div class="field__row">
+          <label class="field__label" for="forward-hotkey">
+            Forward hotkey
+          </label>
+          <div class="hotkey">
+            <input
+              id="forward-hotkey"
+              name="forward-hotkey"
+              class="field__input hotkey__input"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="forward-hotkey-help"
+            />
+            <button
+              id="forward-hotkey-reset"
+              class="button button--secondary hotkey__reset"
+              type="button"
+              aria-label="Reset forward hotkey to default"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+        <p id="forward-hotkey-help" class="field__help">
+          Focus the field and press a combination, or type one. For example:
+          Alt+Shift+Down
+        </p>
+
+        <div class="field__row">
+          <label class="field__label" for="backward-hotkey">
+            Backward hotkey
+          </label>
+          <div class="hotkey">
+            <input
+              id="backward-hotkey"
+              name="backward-hotkey"
+              class="field__input hotkey__input"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="backward-hotkey-help"
+            />
+            <button
+              id="backward-hotkey-reset"
+              class="button button--secondary hotkey__reset"
+              type="button"
+              aria-label="Reset backward hotkey to default"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+        <p id="backward-hotkey-help" class="field__help">
+          Focus the field and press a combination, or type one. For example:
+          Alt+Shift+Up
+        </p>
+      </section>
+
+      <!-- Save action (options.ts targets #save-button, task 10.3/10.4). -->
+      <div class="actions">
+        <button id="save-button" class="button" type="button">Save</button>
+      </div>
+
+      <!--
+        Message/status region for save confirmations, validation, conflict, and
+        storage-error messages (Requirements 3.2, 3.5, 4.7, 4.8, 7.4).
+        aria-live announces messages to assistive technology as they appear.
+      -->
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>
