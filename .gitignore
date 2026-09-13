@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Test reports
+ctrf/
+
+# web-ext packaging output
+web-ext-artifacts/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store

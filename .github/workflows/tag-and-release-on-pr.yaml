@@ -1,0 +1,72 @@
+name: Tag and release on PR merge
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  tag_and_release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - name: Create release
+        uses: partly-cloud/create-release-action@4f7648584e83f014059cd9fc200cff560628de3f # 0.1.0
+        with:
+          branch: main
+          prerelease: "false"
+          pr_number: ${{ github.event.pull_request.number }}
+          warn_on_rc_mismatch: "true"
+
+  cleanup_prerelease:
+    # Runs after tag_and_release (so warn_on_rc_mismatch still has the RC tag to
+    # compare against) but must still run when the PR was closed without merging,
+    # which is why it can't just be gated on tag_and_release's own success.
+    if: always()
+    needs: tag_and_release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - name: Find and delete prerelease tags and releases for PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          PRERELEASE_TAGS=$(git tag -l "*-rc-pr-${PR_NUMBER}-*")
+
+          if [ -z "$PRERELEASE_TAGS" ]; then
+            echo "No prerelease tags found for PR #${PR_NUMBER}"
+            exit 0
+          fi
+
+          echo "Found prerelease tags:"
+          echo "$PRERELEASE_TAGS"
+
+          echo "$PRERELEASE_TAGS" | while read -r TAG; do
+            if [ -n "$TAG" ]; then
+              echo "Processing tag: $TAG"
+              gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null && echo "  ✓ Release and tag deleted" || echo "  ✗ Release not found or already deleted"
+            fi
+          done
+
+          echo "Cleanup complete for PR #${PR_NUMBER}"
