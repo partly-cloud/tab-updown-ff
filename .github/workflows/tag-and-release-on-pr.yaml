@@ -23,7 +23,7 @@ jobs:
           persist-credentials: true # zizmor: ignore[artipacked]
 
       - name: Create release
-        uses: tetdigital/actions-create-release@368c396b496c36d4f2df33ed704eeedb00730833 # 1.2.1
+        uses: partly-cloud/create-release-action@4f7648584e83f014059cd9fc200cff560628de3f # 0.1.0
         with:
           branch: main
           prerelease: "false"
