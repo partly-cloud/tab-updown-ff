@@ -1,0 +1,32 @@
+name: Create prerelease on PR open
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  prerelease:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - name: Create prerelease
+        uses: tetdigital/actions-create-release@368c396b496c36d4f2df33ed704eeedb00730833 # 1.2.1
+        with:
+          branch: ${{ github.event.pull_request.head.ref }}
+          pr_number: ${{ github.event.pull_request.number }}
+          prerelease: "true"

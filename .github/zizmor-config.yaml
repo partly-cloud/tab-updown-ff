@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://docs.zizmor.sh/config.schema.json
+#
+# zizmor configuration — static analysis for the GitHub Actions workflows in
+# this repo (https://docs.zizmor.sh/configuration/).
+#
+# All actions in .github/workflows are pinned to full commit SHAs, so the
+# default audits pass without per-rule ignores. Add entries under `rules` here
+# if a finding needs to be scoped or suppressed, e.g.:
+#
+#   rules:
+#     template-injection:
+#       ignore:
+#         - test-and-lint.yaml:42
+rules: {}
