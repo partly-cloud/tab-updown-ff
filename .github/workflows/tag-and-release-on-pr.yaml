@@ -28,7 +28,6 @@ jobs:
           branch: main
           prerelease: "false"
           pr_number: ${{ github.event.pull_request.number }}
-          warn_on_rc_mismatch: "true"
 
   cleanup_prerelease:
     # Runs after tag_and_release (so warn_on_rc_mismatch still has the RC tag to
