@@ -1,0 +1,30 @@
+{
+  "name": "tab-updown-ff",
+  "version": "1.0.0",
+  "description": "Move focus through focusable elements in configurable chunks — a Page Up/Down analogue for the Tab key.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "lint": "web-ext lint --source-dir dist --ignore-files \"**/*.map\"",
+    "start": "web-ext run --source-dir dist",
+    "package": "npm run build && web-ext build --source-dir dist --overwrite-dest --ignore-files \"**/*.map\""
+  },
+  "devDependencies": {
+    "@types/firefox-webext-browser": "^120.0.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
+    "fast-check": "^3.23.0",
+    "jest": "^29.7.0",
+    "jest-ctrf-json-reporter": "^0.0.9",
+    "jest-environment-jsdom": "^29.7.0",
+    "jsdom": "^25.0.0",
+    "ts-jest": "^29.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.0",
+    "web-ext": "^10.6.0"
+  }
+}

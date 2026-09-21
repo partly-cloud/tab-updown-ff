@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Tab-Updown",
+  "version": "1.0.0",
+  "description": "Move focus through focusable elements in configurable chunks.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tab-updown@partly.cloud",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  },
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "all_frames": false,
+      "js": [
+        "content.js"
+      ]
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "commands": {
+    "tab-updown-forward": {
+      "suggested_key": {
+        "default": "Alt+Shift+Down"
+      },
+      "description": "Move focus forward by one chunk"
+    },
+    "tab-updown-backward": {
+      "suggested_key": {
+        "default": "Alt+Shift+Up"
+      },
+      "description": "Move focus backward by one chunk"
+    }
+  }
+}
