@@ -42,7 +42,7 @@ async function run() {
     entryNames: "[name]",
     bundle: true,
     format: "iife",
-    target: ["firefox115"],
+    target: ["firefox142"],
     platform: "browser",
     sourcemap: true,
     logLevel: "info",
