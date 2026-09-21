@@ -43,7 +43,7 @@ jobs:
 
       - name: Publish test report
         if: always()
-        uses: ctrf-io/github-test-reporter@0f299074936c32ccaab5be5230511f6b2b9080aa # v1.0.28
+        uses: ctrf-io/github-test-reporter@7974087018bf4857cf5a9d78723e152038c3fa31 # v1.3.0
         with:
           report-path: ctrf/ctrf-report.json
           summary: true
