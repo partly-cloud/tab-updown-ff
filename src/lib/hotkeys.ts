@@ -18,19 +18,24 @@
  * - splits on `+` into tokens and trims each token,
  * - lower-cases each token so casing is ignored (e.g. `"alt"` vs `"Alt"`),
  * - drops empty tokens (tolerating stray/duplicated `+` separators),
+ * - removes duplicate tokens so a combination denotes a *set* of tokens (e.g.
+ *   `"A+A"` normalizes the same as `"A"`),
  * - sorts the tokens so that modifier/key ordering is irrelevant (e.g.
  *   `"Alt+Shift+Down"` and `"Shift+Alt+Down"` normalize identically).
  *
- * The result is a `+`-joined string of the sorted, lower-cased tokens.
+ * The result is a `+`-joined string of the sorted, de-duplicated, lower-cased
+ * tokens.
  */
 export function normalizeHotkey(combination: string): string {
-  return combination
+  const tokens = combination
     .trim()
     .split("+")
     .map((token) => token.trim().toLowerCase())
-    .filter((token) => token.length > 0)
-    .sort()
-    .join("+");
+    .filter((token) => token.length > 0);
+
+  // De-duplicate so the combination is compared as a set of tokens (matching
+  // Property 9: conflict iff the two token sets coincide).
+  return [...new Set(tokens)].sort().join("+");
 }
 
 /**
