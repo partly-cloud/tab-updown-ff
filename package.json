@@ -1,6 +1,6 @@
 {
   "name": "tab-updown-ff",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Move focus through focusable elements in configurable chunks — a Page Up/Down analogue for the Tab key.",
   "private": true,
   "type": "module",
