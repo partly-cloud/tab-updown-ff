@@ -38,6 +38,9 @@ jobs:
       - name: Build distributable
         run: npm run build
 
+      - name: Lint extension (web-ext)
+        run: npm run lint
+
       - name: Publish test report
         if: always()
         uses: ctrf-io/github-test-reporter@0f299074936c32ccaab5be5230511f6b2b9080aa # v1.0.28

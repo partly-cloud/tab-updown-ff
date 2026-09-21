@@ -8,6 +8,7 @@
     "build": "node build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "lint": "web-ext lint --source-dir dist --ignore-files \"**/*.map\"",
     "start": "web-ext run --source-dir dist",
     "package": "npm run build && web-ext build --source-dir dist --overwrite-dest --ignore-files \"**/*.map\""
   },
