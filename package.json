@@ -13,7 +13,7 @@
     "package": "npm run build && web-ext build --source-dir dist --overwrite-dest --ignore-files \"**/*.map\""
   },
   "devDependencies": {
-    "@types/firefox-webext-browser": "^120.0.0",
+    "@types/firefox-webext-browser": "^143.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^22.0.0",
     "esbuild": "^0.28.2",
