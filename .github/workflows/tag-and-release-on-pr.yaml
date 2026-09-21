@@ -9,32 +9,7 @@ on:
 permissions: {}
 
 jobs:
-  tag_and_release:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: true # zizmor: ignore[artipacked]
-
-      - name: Create release
-        uses: partly-cloud/create-release-action@4f7648584e83f014059cd9fc200cff560628de3f # 0.1.0
-        with:
-          branch: main
-          prerelease: "false"
-          pr_number: ${{ github.event.pull_request.number }}
-
   cleanup_prerelease:
-    # Runs after tag_and_release (so warn_on_rc_mismatch still has the RC tag to
-    # compare against) but must still run when the PR was closed without merging,
-    # which is why it can't just be gated on tag_and_release's own success.
-    if: always()
-    needs: tag_and_release
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -69,3 +44,27 @@ jobs:
           done
 
           echo "Cleanup complete for PR #${PR_NUMBER}"
+
+  tag_and_release:
+    # Only cut a real release when the PR was merged. Runs after
+    # cleanup_prerelease so the RC tags are gone and the version is computed
+    # against the latest stable tag on main.
+    if: github.event.pull_request.merged == true
+    needs: cleanup_prerelease
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - name: Create release
+        uses: partly-cloud/create-release-action@4f7648584e83f014059cd9fc200cff560628de3f # 0.1.0
+        with:
+          branch: main
+          prerelease: "false"
+          pr_number: ${{ github.event.pull_request.number }}
