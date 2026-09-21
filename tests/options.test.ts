@@ -49,13 +49,19 @@ const OPTIONS_BODY = (() => {
     join(process.cwd(), "src", "options.html"),
     "utf8",
   );
-  const match = /<body[^>]*>([\s\S]*)<\/body>/i.exec(html);
-  if (match === null) {
+  // Parse with the DOM rather than regexes so extraction is robust against
+  // script-tag variants (and so CodeQL is not misled by ad-hoc HTML filtering).
+  const parsed = new DOMParser().parseFromString(html, "text/html");
+  const body = parsed.body;
+  if (body === null) {
     throw new Error("Could not extract <body> from src/options.html");
   }
   // Drop the <script> tag so importing the module (not the built bundle) is what
   // wires the page in these tests.
-  return match[1].replace(/<script[\s\S]*?<\/script>/gi, "");
+  body.querySelectorAll("script").forEach((el) => {
+    el.remove();
+  });
+  return body.innerHTML;
 })();
 
 type OptionsModule = typeof import("../src/options.js");
