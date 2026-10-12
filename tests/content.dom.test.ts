@@ -192,6 +192,9 @@ describe("content script message handling (jsdom + mocked storage)", () => {
       const loaded = await loadContentScript({ chunkSize: 2 });
       restore = loaded.restore;
       const { browser, onMessage } = loaded;
+      // The script reads its copy of the shortcuts at load; only reads caused
+      // by the message matter here.
+      browser.storage.local.get.mockClear();
 
       document.body.innerHTML = `
         <button id="b0">0</button>

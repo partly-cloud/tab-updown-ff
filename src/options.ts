@@ -11,7 +11,9 @@
  * Design decision (design.md "Options_Page"): the Chunk_Size is persisted in the
  * Settings_Store (`storage.local`), but the hotkeys are persisted by Firefox
  * itself via the `commands` API — updated with `commands.update()` and read back
- * with `commands.getAll()`. So only `chunkSize` is written to `storage.local`.
+ * with `commands.getAll()`. The page writes `chunkSize` to `storage.local`, and
+ * after a hotkey change it refreshes the read-only copy of the shortcuts that
+ * the Content_Script uses (src/lib/shortcut-sync.ts).
  *
  * Implements tasks 10.2 (load/display), 10.3 (Chunk_Size save), and 10.4 (hotkey
  * save) — Requirements 3.2, 3.5, 4.3, 4.4, 4.7, 4.8, 6.1, 6.2, 6.3, 4.5, 4.6,
@@ -25,9 +27,15 @@ import {
   DEFAULT_FORWARD_HOTKEY,
   FORWARD_COMMAND_NAME,
 } from "./lib/constants";
-import { hotkeysConflict, isValidShortcut, keyEventToShortcut } from "./lib/hotkeys";
+import {
+  detectIsMac,
+  hotkeysConflict,
+  isValidShortcut,
+  keyEventToShortcut,
+} from "./lib/hotkeys";
 import type { KeyDescriptor } from "./lib/hotkeys";
 import { validateChunkSize } from "./lib/settings";
+import { syncShortcutsToStorage } from "./lib/shortcut-sync";
 
 /** Storage key under which the Chunk_Size is persisted in `storage.local`. */
 const CHUNK_SIZE_KEY = "chunkSize";
@@ -264,6 +272,9 @@ export async function saveHotkeys(elements: OptionsElements): Promise<boolean> {
       name: BACKWARD_COMMAND_NAME,
       shortcut: backward,
     });
+    // The hotkeys are saved; a failed copy for the Content_Script isn't a
+    // save failure (the Background_Script re-syncs on its next wake).
+    await syncShortcutsToStorage().catch(() => undefined);
     return true;
   } catch {
     // Firefox rejected an invalid combination: revert the displayed values to
@@ -317,20 +328,9 @@ export async function handleSave(elements: OptionsElements): Promise<void> {
  */
 const MODIFIER_KEY_NAMES = new Set(["Shift", "Control", "Alt", "Meta"]);
 
-/**
- * Detect whether the current platform is macOS, so the recorder can emit the
- * Mac-specific `Command` / `MacCtrl` modifier tokens (Requirement 8.4).
- *
- * Prefers the modern `navigator.userAgentData.platform`, falling back to the
- * legacy `navigator.platform`. Guarded so it is safe in a non-browser context.
- */
-export function detectIsMac(nav: Navigator = navigator): boolean {
-  const uaPlatform = (
-    nav as Navigator & { userAgentData?: { platform?: string } }
-  ).userAgentData?.platform;
-  const platform = uaPlatform ?? nav.platform ?? "";
-  return /mac/i.test(platform);
-}
+// `detectIsMac` lives in src/lib/hotkeys.ts so the Content_Script can share
+// it; re-exported here for existing callers.
+export { detectIsMac };
 
 /**
  * Handle a `keydown` on a hotkey field: record the pressed combination as a
@@ -414,6 +414,9 @@ export async function onResetClick(
   await browser.commands.reset(commandName);
   const commands = await browser.commands.getAll();
   field.value = shortcutForCommand(commands, commandName) ?? defaultShortcut;
+  // `commands.reset()` doesn't fire `commands.onChanged`, so refresh the
+  // Content_Script's copy of the shortcuts here, after the display update.
+  void syncShortcutsToStorage().catch(() => undefined);
 }
 
 /**

@@ -5,14 +5,16 @@
  * controllable stand-in for the promise-based `browser.*` namespace. This
  * module builds a minimal mock covering the surface those tests use:
  *
- *   - browser.storage.local  (get / set)
- *   - browser.commands       (getAll / update / reset / onCommand)
+ *   - browser.storage.local  (get / set) and browser.storage.onChanged
+ *   - browser.commands       (getAll / update / reset / onCommand / onChanged)
  *   - browser.tabs           (query / sendMessage)
  *   - browser.runtime        (onMessage)
  *
  * Event objects (`onCommand`, `onMessage`) expose `addListener` /
  * `removeListener` plus a test-only `dispatch(...)` helper that invokes every
  * registered listener, so tests can simulate the browser firing an event.
+ * `storage.local.set` dispatches `storage.onChanged` with area `"local"`, as
+ * Firefox does.
  */
 
 export interface MockEvent<Listener extends (...args: never[]) => unknown> {
@@ -51,18 +53,30 @@ export interface StorageChange {
   [key: string]: unknown;
 }
 
+/** One key's change, as passed to `storage.onChanged` listeners. */
+export interface StorageChangeRecord {
+  oldValue?: unknown;
+  newValue?: unknown;
+}
+
 export interface MockBrowser {
   storage: {
     local: {
       get: jest.Mock<Promise<Record<string, unknown>>, [unknown?]>;
       set: jest.Mock<Promise<void>, [Record<string, unknown>]>;
     };
+    onChanged: MockEvent<
+      (changes: Record<string, StorageChangeRecord>, areaName: string) => void
+    >;
   };
   commands: {
     getAll: jest.Mock<Promise<Array<{ name?: string; shortcut?: string }>>, []>;
     update: jest.Mock<Promise<void>, [{ name: string; shortcut?: string }]>;
     reset: jest.Mock<Promise<void>, [string]>;
     onCommand: MockEvent<(command: string) => void>;
+    onChanged: MockEvent<
+      (changeInfo: { name: string; newShortcut: string; oldShortcut: string }) => void
+    >;
   };
   tabs: {
     query: jest.Mock<
@@ -107,6 +121,9 @@ export function createMockBrowser(
   const store: Record<string, unknown> = { ...(options.storage ?? {}) };
   const commandList = options.commands ?? [];
   const tabList = options.tabs ?? [];
+  const storageOnChanged = createMockEvent<
+    (changes: Record<string, StorageChangeRecord>, areaName: string) => void
+  >();
 
   return {
     storage: {
@@ -137,9 +154,15 @@ export function createMockBrowser(
           return result;
         }),
         set: jest.fn(async (items: Record<string, unknown>) => {
+          const changes: Record<string, StorageChangeRecord> = {};
+          for (const [key, newValue] of Object.entries(items)) {
+            changes[key] = { oldValue: store[key], newValue };
+          }
           Object.assign(store, items);
+          storageOnChanged.dispatch(changes, "local");
         }),
       },
+      onChanged: storageOnChanged,
     },
     commands: {
       getAll: jest.fn(async () => commandList.map((command) => ({ ...command }))),
@@ -148,6 +171,9 @@ export function createMockBrowser(
       ),
       reset: jest.fn(async (_name: string) => undefined),
       onCommand: createMockEvent<(command: string) => void>(),
+      onChanged: createMockEvent<
+        (changeInfo: { name: string; newShortcut: string; oldShortcut: string }) => void
+      >(),
     },
     tabs: {
       query: jest.fn(async (_query: Record<string, unknown>) =>

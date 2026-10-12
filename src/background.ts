@@ -15,6 +15,7 @@ import {
   BACKWARD_COMMAND_NAME,
 } from "./lib/constants.js";
 import type { Direction } from "./lib/focus.js";
+import { syncShortcutsToStorage } from "./lib/shortcut-sync.js";
 
 /**
  * The message relayed from the Background_Script to the Content_Script
@@ -79,3 +80,18 @@ browser.commands.onCommand.addListener((commandName: string) => {
   // command; any rejection is handled inside `handleCommand`.
   void handleCommand(commandName);
 });
+
+/**
+ * Copy the active shortcuts into `storage.local` for the Content_Script's
+ * hotkey guard (src/lib/shortcut-sync.ts). Failures leave the previous copy in
+ * place; the guard falls back to the defaults when there is none.
+ */
+function refreshShortcutCopy(): void {
+  syncShortcutsToStorage().catch(() => undefined);
+}
+
+// `commands.onChanged` fires when the user changes a shortcut (Options_Page or
+// about:addons). Syncing on every wake also covers install, browser start, and
+// `commands.reset()`, which doesn't fire `onChanged`.
+browser.commands.onChanged.addListener(refreshShortcutCopy);
+refreshShortcutCopy();

@@ -1,11 +1,12 @@
 /**
- * Hotkey conflict detection for the Tab-Updown extension.
+ * Hotkey logic for the Tab-Updown extension.
  *
  * DOM-free pure logic. Used by the Options_Page to reject a submission in which
  * the Forward_Hotkey and Backward_Hotkey resolve to the same key combination
  * (Requirement 4.8). See design.md "Correctness Properties" Property 9:
  * "the conflict predicate reports a conflict if and only if their normalized
- * forms are equal".
+ * forms are equal". Also records key presses as Shortcut_Strings, and matches
+ * key events against a Shortcut_String for the Content_Script's hotkey guard.
  */
 
 /**
@@ -316,4 +317,133 @@ export function isValidShortcut(str: string): boolean {
   }
 
   return true;
+}
+
+/**
+ * Detect whether the current platform is macOS, so shortcut tokens map to the
+ * right physical modifiers (`Command` / `MacCtrl` on Mac, `Ctrl` elsewhere).
+ *
+ * Prefers the modern `navigator.userAgentData.platform`, falling back to the
+ * legacy `navigator.platform`. Shared by the Options_Page recorder and the
+ * Content_Script's hotkey guard.
+ */
+export function detectIsMac(nav: Navigator = navigator): boolean {
+  const uaPlatform = (
+    nav as Navigator & { userAgentData?: { platform?: string } }
+  ).userAgentData?.platform;
+  const platform = uaPlatform ?? nav.platform ?? "";
+  return /mac/i.test(platform);
+}
+
+/**
+ * A pressed key as seen by the Content_Script's hotkey guard: a
+ * {@link KeyDescriptor} plus `event.code`, the physical key. `code` lets a
+ * shortcut match when a modifier changes `event.key` (Option+letter on macOS
+ * produces a symbol, Shift+digit produces punctuation).
+ */
+export interface ShortcutKeyEvent extends KeyDescriptor {
+  code: string;
+}
+
+/** Map a `KeyboardEvent.code` to its `commands` grammar token, or `null`. */
+function codeToToken(code: string): string | null {
+  const letter = /^Key([A-Z])$/.exec(code);
+  if (letter !== null) {
+    return letter[1];
+  }
+  const digit = /^(?:Digit|Numpad)([0-9])$/.exec(code);
+  if (digit !== null) {
+    return digit[1];
+  }
+  switch (code) {
+    case "Space":
+    case "Comma":
+    case "Period":
+      return code;
+    default:
+      // Arrow keys, F1–F12 and the named keys share their `key` spelling.
+      return keyToToken(code);
+  }
+}
+
+/**
+ * Canonical physical modifier for a shortcut token, following Firefox's
+ * `ShortcutUtils.getModifiersAttribute`: `Ctrl` and `Command` are both the
+ * "accel" key (Command on Mac, Control elsewhere) and `MacCtrl` is the physical
+ * Control key, which is the accel key outside macOS. Returns `null` for a token
+ * that isn't a modifier.
+ */
+function shortcutModifier(token: string, isMac: boolean): string | null {
+  switch (token.toLowerCase()) {
+    case "ctrl":
+    case "command":
+      return "accel";
+    case "macctrl":
+      return isMac ? "control" : "accel";
+    case "alt":
+      return "alt";
+    case "shift":
+      return "shift";
+    default:
+      return null;
+  }
+}
+
+/** The canonical modifiers held in a key event (see {@link shortcutModifier}). */
+function pressedModifiers(event: ShortcutKeyEvent): Set<string> {
+  const pressed = new Set<string>();
+  if (event.isMac) {
+    if (event.meta) pressed.add("accel");
+    if (event.ctrl) pressed.add("control");
+  } else {
+    if (event.ctrl) pressed.add("accel");
+    // The Windows/Super key isn't a shortcut modifier outside macOS.
+    if (event.meta) pressed.add("meta");
+  }
+  if (event.alt) pressed.add("alt");
+  if (event.shift) pressed.add("shift");
+  return pressed;
+}
+
+/**
+ * Report whether a key event is the given `commands` Shortcut_String (for
+ * example `"Alt+Shift+Down"`).
+ *
+ * Firefox delivers an extension shortcut's `keydown` to the page before it runs
+ * the command, so the Content_Script uses this to recognise its own hotkeys and
+ * keep them away from page handlers (a Primer menu button opens on any
+ * ArrowDown, modifiers or not).
+ *
+ * Matching mirrors Firefox's `<key>` handling: the held modifiers must be
+ * exactly the shortcut's modifiers, and the key must equal the shortcut's key,
+ * compared case-insensitively against both `event.key` and `event.code`. An
+ * empty or unassigned shortcut never matches.
+ */
+export function shortcutMatchesKeyEvent(shortcut: string, event: ShortcutKeyEvent): boolean {
+  const tokens = shortcut
+    .split("+")
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+  if (tokens.length === 0) {
+    return false;
+  }
+
+  const wantedKey = tokens[tokens.length - 1].toLowerCase();
+  const wanted = new Set<string>();
+  for (const token of tokens.slice(0, -1)) {
+    const modifier = shortcutModifier(token, event.isMac);
+    if (modifier === null) {
+      return false;
+    }
+    wanted.add(modifier);
+  }
+
+  const pressed = pressedModifiers(event);
+  if (pressed.size !== wanted.size || [...wanted].some((m) => !pressed.has(m))) {
+    return false;
+  }
+
+  return [keyToToken(event.key), codeToToken(event.code)].some(
+    (token) => token !== null && token.toLowerCase() === wantedKey,
+  );
 }
